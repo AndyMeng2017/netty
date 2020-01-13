@@ -380,6 +380,7 @@ public abstract class AbstractNioChannel extends AbstractChannel {
                 selectionKey = javaChannel().register(eventLoop().unwrappedSelector(), 0, this);
                 return;
             } catch (CancelledKeyException e) {
+                // TODO 1003 doRegister 异常
                 if (!selected) {
                     // Force the Selector to select now as the "canceled" SelectionKey may still be
                     // cached and not removed because no Select.select(..) operation was called yet.

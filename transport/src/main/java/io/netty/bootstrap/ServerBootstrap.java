@@ -127,12 +127,14 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
 
         ChannelPipeline p = channel.pipeline();
 
+        // 记录当前的属性
         final EventLoopGroup currentChildGroup = childGroup;
         final ChannelHandler currentChildHandler = childHandler;
         final Entry<ChannelOption<?>, Object>[] currentChildOptions =
                 childOptions.entrySet().toArray(EMPTY_OPTION_ARRAY);
         final Entry<AttributeKey<?>, Object>[] currentChildAttrs = childAttrs.entrySet().toArray(EMPTY_ATTRIBUTE_ARRAY);
 
+        // 添加 ChannelInitializer 对象到 pipeline 中，用于后续初始化 ChannelHandler 到 pipeline 中
         p.addLast(new ChannelInitializer<Channel>() {
             @Override
             public void initChannel(final Channel ch) {

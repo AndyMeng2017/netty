@@ -49,7 +49,10 @@ public final class EchoServer {
         }
 
         // Configure the server.
+        // 创建两个 EventLoopGroup 对象
+        // 创建 boss 线程组 用于服务端接受客户端的连接
         EventLoopGroup bossGroup = new NioEventLoopGroup(1);
+        // 创建 worker 线程组 用于进行 SocketChannel 的数据读写
         EventLoopGroup workerGroup = new NioEventLoopGroup();
         final EchoServerHandler serverHandler = new EchoServerHandler();
         try {
@@ -71,9 +74,11 @@ public final class EchoServer {
              });
 
             // Start the server.
+            // 绑定端口，并同步等待成功，即启动服务端
             ChannelFuture f = b.bind(PORT).sync();
 
             // Wait until the server socket is closed.
+            // 监听服务端关闭，并阻塞等待
             f.channel().closeFuture().sync();
         } finally {
             // Shut down all event loops to terminate all threads.

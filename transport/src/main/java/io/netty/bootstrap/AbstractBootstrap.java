@@ -223,6 +223,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
      * Create a new {@link Channel} and bind it.
      */
     public ChannelFuture bind() {
+        // 校验服务启动需要的必要参数
         validate();
         SocketAddress localAddress = this.localAddress;
         if (localAddress == null) {
@@ -299,7 +300,9 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
     final ChannelFuture initAndRegister() {
         Channel channel = null;
         try {
+            // 创建 Channel 对象
             channel = channelFactory.newChannel();
+            // 初始化 Channel 配置
             init(channel);
         } catch (Throwable t) {
             if (channel != null) {
@@ -344,8 +347,10 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
         channel.eventLoop().execute(new Runnable() {
             @Override
             public void run() {
+                // 注册成功，绑定端口
                 if (regFuture.isSuccess()) {
                     channel.bind(localAddress, promise).addListener(ChannelFutureListener.CLOSE_ON_FAILURE);
+                // 注册失败，回调通知 promise 异常
                 } else {
                     promise.setFailure(regFuture.cause());
                 }
@@ -428,6 +433,14 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
         }
     }
 
+    /**
+     * 而 #setChannelOption(...) 方法，它是设置已经创建的 Channel 的可选项。
+     *
+     * @param channel
+     * @param option
+     * @param value
+     * @param logger
+     */
     @SuppressWarnings("unchecked")
     private static void setChannelOption(
             Channel channel, ChannelOption<?> option, Object value, InternalLogger logger) {

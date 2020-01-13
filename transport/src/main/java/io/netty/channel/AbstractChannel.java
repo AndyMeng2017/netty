@@ -452,18 +452,22 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
         @Override
         public final void register(EventLoop eventLoop, final ChannelPromise promise) {
             ObjectUtil.checkNotNull(eventLoop, "eventLoop");
+            // 校验未注册
             if (isRegistered()) {
                 promise.setFailure(new IllegalStateException("registered to an event loop already"));
                 return;
             }
+            // 校验 Channel 和 eventLoop 匹配
             if (!isCompatible(eventLoop)) {
                 promise.setFailure(
                         new IllegalStateException("incompatible event loop type: " + eventLoop.getClass().getName()));
                 return;
             }
 
+            // 设置 Channel 的 eventLoop 属性
             AbstractChannel.this.eventLoop = eventLoop;
 
+            // 在 EventLoop 中执行注册逻辑
             if (eventLoop.inEventLoop()) {
                 register0(promise);
             } else {
@@ -478,8 +482,11 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                     logger.warn(
                             "Force-closing a channel whose registration task was not accepted by an event loop: {}",
                             AbstractChannel.this, t);
+                    // 强制关闭 Channel
                     closeForcibly();
+                    // 通知 closeFuture 已经关闭 详细解析，见 《精尽 Netty 源码解析 —— Channel（七）之 close 操作》
                     closeFuture.setClosed();
+                    // 回调通知 promise 发生该异常
                     safeSetFailure(promise, t);
                 }
             }
@@ -489,22 +496,32 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
             try {
                 // check if the channel is still open as it could be closed in the mean time when the register
                 // call was outside of the eventLoop
+                // TODO 1001 Promise || 确保 Channel 是打开的
                 if (!promise.setUncancellable() || !ensureOpen(promise)) {
                     return;
                 }
+                // 记录是否为首次注册
                 boolean firstRegistration = neverRegistered;
+                // 执行注册逻辑
                 doRegister();
+                // 标记首次注册为 false
                 neverRegistered = false;
+                // 标记 Channel 为已注册
                 registered = true;
 
+                // 触发 ChannelInitializer 执行，进行 Handler 初始化
                 // Ensure we call handlerAdded(...) before we actually notify the promise. This is needed as the
                 // user may already fire events through the pipeline in the ChannelFutureListener.
                 pipeline.invokeHandlerAddedIfNeeded();
 
+                // 回调通知 `promise` 执行成功
                 safeSetSuccess(promise);
+
+                // 触发通知已注册事件
                 pipeline.fireChannelRegistered();
                 // Only fire a channelActive if the channel has never been registered. This prevents firing
                 // multiple channel actives if the channel is deregistered and re-registered.
+                // TODO 1002
                 if (isActive()) {
                     if (firstRegistration) {
                         pipeline.fireChannelActive();
@@ -526,6 +543,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
 
         @Override
         public final void bind(final SocketAddress localAddress, final ChannelPromise promise) {
+            // 判断是否在 EventLoop 的线程中
             assertEventLoop();
 
             if (!promise.setUncancellable() || !ensureOpen(promise)) {
@@ -545,7 +563,10 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                         "address (" + localAddress + ") anyway as requested.");
             }
 
+            // 记录 Channel 是否激活
             boolean wasActive = isActive();
+
+            // 绑定 Channel 的端口
             try {
                 doBind(localAddress);
             } catch (Throwable t) {
@@ -554,6 +575,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                 return;
             }
 
+            // 若 Channel 是新激活的，触发通知 Channel 已激活的事件
             if (!wasActive && isActive()) {
                 invokeLater(new Runnable() {
                     @Override
@@ -563,6 +585,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                 });
             }
 
+            // 回调通知 promise 执行成功
             safeSetSuccess(promise);
         }
 
@@ -835,10 +858,12 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
         public final void beginRead() {
             assertEventLoop();
 
+            // Channel 必须激活
             if (!isActive()) {
                 return;
             }
 
+            // 执行开始读取
             try {
                 doBeginRead();
             } catch (final Exception e) {
