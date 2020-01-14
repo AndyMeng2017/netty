@@ -211,9 +211,11 @@ public class Bootstrap extends AbstractBootstrap<Bootstrap, Channel> {
                 return promise;
             }
 
+            // 解析远程地址
             final Future<SocketAddress> resolveFuture = resolver.resolve(remoteAddress);
 
             if (resolveFuture.isDone()) {
+                // 解析远程地址失败，关闭 Channel ，并回调通知 promise 异常
                 final Throwable resolveFailureCause = resolveFuture.cause();
 
                 if (resolveFailureCause != null) {
@@ -222,6 +224,7 @@ public class Bootstrap extends AbstractBootstrap<Bootstrap, Channel> {
                     promise.setFailure(resolveFailureCause);
                 } else {
                     // Succeeded to resolve immediately; cached? (or did a blocking lookup)
+                    // 连接远程地址
                     doConnect(resolveFuture.getNow(), localAddress, promise);
                 }
                 return promise;
