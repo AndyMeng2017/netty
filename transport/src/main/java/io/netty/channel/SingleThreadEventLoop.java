@@ -84,7 +84,9 @@ public abstract class SingleThreadEventLoop extends SingleThreadEventExecutor im
     @Override
     public ChannelFuture register(final ChannelPromise promise) {
         ObjectUtil.checkNotNull(promise, "promise");
+        // 注册 Channel 到 EventLoop 上
         promise.channel().unsafe().register(this, promise);
+        // 返回 ChannelPromise 对象
         return promise;
     }
 
@@ -140,6 +142,10 @@ public abstract class SingleThreadEventLoop extends SingleThreadEventExecutor im
         return super.hasTasks() || !tailTasks.isEmpty();
     }
 
+    /**
+     * 获得队列中的任务数
+     * @return
+     */
     @Override
     public int pendingTasks() {
         return super.pendingTasks() + tailTasks.size();
