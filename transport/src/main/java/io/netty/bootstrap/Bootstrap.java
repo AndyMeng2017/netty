@@ -47,6 +47,9 @@ public class Bootstrap extends AbstractBootstrap<Bootstrap, Channel> {
 
     private static final InternalLogger logger = InternalLoggerFactory.getInstance(Bootstrap.class);
 
+    /**
+     * 默认地址解析器对象
+     */
     private static final AddressResolverGroup<?> DEFAULT_RESOLVER = DefaultAddressResolverGroup.INSTANCE;
 
     /**
@@ -224,7 +227,7 @@ public class Bootstrap extends AbstractBootstrap<Bootstrap, Channel> {
                     promise.setFailure(resolveFailureCause);
                 } else {
                     // Succeeded to resolve immediately; cached? (or did a blocking lookup)
-                    // 连接远程地址
+                    // 连接远程地址 connect 的逻辑，执行在 resolve 的逻辑之后
                     doConnect(resolveFuture.getNow(), localAddress, promise);
                 }
                 return promise;
