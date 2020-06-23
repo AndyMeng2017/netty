@@ -43,8 +43,14 @@ public abstract class AbstractScheduledEventExecutor extends AbstractEventExecut
        public void run() { } // Do nothing
     };
 
+    /**
+     * 定时任务队列
+     */
     PriorityQueue<ScheduledFutureTask<?>> scheduledTaskQueue;
 
+    /**
+     * 任务序号生成器
+     */
     long nextTaskId;
 
     protected AbstractScheduledEventExecutor() {
@@ -105,6 +111,7 @@ public abstract class AbstractScheduledEventExecutor extends AbstractEventExecut
         final ScheduledFutureTask<?>[] scheduledTasks =
                 scheduledTaskQueue.toArray(new ScheduledFutureTask<?>[0]);
 
+        // 循环，取消所有任务
         for (ScheduledFutureTask<?> task: scheduledTasks) {
             task.cancelWithoutRemove(false);
         }
@@ -120,12 +127,15 @@ public abstract class AbstractScheduledEventExecutor extends AbstractEventExecut
     }
 
     /**
+     * 获得指定时间内，定时任务队列首个可执行的任务，并且从队列中移除
+     *
      * Return the {@link Runnable} which is ready to be executed with the given {@code nanoTime}.
      * You should use {@link #nanoTime()} to retrieve the correct {@code nanoTime}.
      */
     protected final Runnable pollScheduledTask(long nanoTime) {
         assert inEventLoop();
 
+        // 获得队列首个定时任务。不会从队列中，移除该任务
         ScheduledFutureTask<?> scheduledTask = peekScheduledTask();
         if (scheduledTask == null || scheduledTask.deadlineNanos() - nanoTime > 0) {
             return null;
@@ -136,6 +146,8 @@ public abstract class AbstractScheduledEventExecutor extends AbstractEventExecut
     }
 
     /**
+     * 获得定时任务队列，距离当前时间，还要多久可执行
+     *
      * Return the nanoseconds until the next scheduled task is ready to be run or {@code -1} if no task is scheduled.
      */
     protected final long nextScheduledTaskNano() {
@@ -161,7 +173,9 @@ public abstract class AbstractScheduledEventExecutor extends AbstractEventExecut
      * Returns {@code true} if a scheduled task is ready for processing.
      */
     protected final boolean hasScheduledTasks() {
+        // 获得队列首个定时任务。不会从队列中，移除该任务
         ScheduledFutureTask<?> scheduledTask = peekScheduledTask();
+        // 判断该任务是否到达可执行的时间
         return scheduledTask != null && scheduledTask.deadlineNanos() <= nanoTime();
     }
 

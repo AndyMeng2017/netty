@@ -594,6 +594,8 @@ public interface ChannelPipeline
      */
     Map<String, ChannelHandler> toMap();
 
+    // ========== ChannelInboundInvoker 相关 ==========
+
     @Override
     ChannelPipeline fireChannelRegistered();
 
@@ -620,6 +622,8 @@ public interface ChannelPipeline
 
     @Override
     ChannelPipeline fireChannelWritabilityChanged();
+
+    // ========== ChannelOutboundInvoker 相关 ==========
 
     @Override
     ChannelPipeline flush();

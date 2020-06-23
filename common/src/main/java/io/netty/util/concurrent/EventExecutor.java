@@ -25,6 +25,8 @@ package io.netty.util.concurrent;
 public interface EventExecutor extends EventExecutorGroup {
 
     /**
+     * 返回自己
+     *
      * Returns a reference to itself.
      */
     @Override

@@ -29,11 +29,27 @@ import java.util.concurrent.atomic.AtomicInteger;
  * the same time.
  */
 public abstract class MultithreadEventExecutorGroup extends AbstractEventExecutorGroup {
-
+    /**
+     * EventExecutor 数组
+     */
     private final EventExecutor[] children;
+    /**
+     * 不可变( 只读 )的 EventExecutor 数组
+     *
+     * @see #MultithreadEventExecutorGroup(int, Executor, EventExecutorChooserFactory, Object...)
+     */
     private final Set<EventExecutor> readonlyChildren;
+    /**
+     * 已终止的 EventExecutor 数量
+     */
     private final AtomicInteger terminatedChildren = new AtomicInteger();
+    /**
+     * 用于终止 EventExecutor 的异步 Future
+     */
     private final Promise<?> terminationFuture = new DefaultPromise(GlobalEventExecutor.INSTANCE);
+    /**
+     * EventExecutor 选择器
+     */
     private final EventExecutorChooserFactory.EventExecutorChooser chooser;
 
     /**
