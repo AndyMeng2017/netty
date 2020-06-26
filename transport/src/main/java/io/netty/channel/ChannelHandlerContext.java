@@ -124,6 +124,8 @@ import java.nio.channels.Channels;
  */
 public interface ChannelHandlerContext extends AttributeMap, ChannelInboundInvoker, ChannelOutboundInvoker {
 
+    // ========== Context 相关 ==========
+
     /**
      * Return the {@link Channel} which is bound to the {@link ChannelHandlerContext}.
      */
@@ -153,6 +155,8 @@ public interface ChannelHandlerContext extends AttributeMap, ChannelInboundInvok
      */
     boolean isRemoved();
 
+    // ========== ChannelInboundInvoker 相关 ==========
+
     @Override
     ChannelHandlerContext fireChannelRegistered();
 
@@ -180,6 +184,8 @@ public interface ChannelHandlerContext extends AttributeMap, ChannelInboundInvok
     @Override
     ChannelHandlerContext fireChannelWritabilityChanged();
 
+    // ========== ChannelOutboundInvoker 相关 ==========
+
     @Override
     ChannelHandlerContext read();
 
@@ -190,6 +196,8 @@ public interface ChannelHandlerContext extends AttributeMap, ChannelInboundInvok
      * Return the assigned {@link ChannelPipeline}
      */
     ChannelPipeline pipeline();
+
+    // ========== ByteBuf 相关 ==========
 
     /**
      * Return the assigned {@link ByteBufAllocator} which will be used to allocate {@link ByteBuf}s.

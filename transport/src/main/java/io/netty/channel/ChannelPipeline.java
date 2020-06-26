@@ -577,6 +577,8 @@ public interface ChannelPipeline
     ChannelHandlerContext context(Class<? extends ChannelHandler> handlerType);
 
     /**
+     * ========== Channel 相关 ==========
+     *
      * Returns the {@link Channel} that this pipeline is attached to.
      *
      * @return the channel. {@code null} if this pipeline is not attached yet.
@@ -595,7 +597,6 @@ public interface ChannelPipeline
     Map<String, ChannelHandler> toMap();
 
     // ========== ChannelInboundInvoker 相关 ==========
-
     @Override
     ChannelPipeline fireChannelRegistered();
 
@@ -624,7 +625,6 @@ public interface ChannelPipeline
     ChannelPipeline fireChannelWritabilityChanged();
 
     // ========== ChannelOutboundInvoker 相关 ==========
-
     @Override
     ChannelPipeline flush();
 }

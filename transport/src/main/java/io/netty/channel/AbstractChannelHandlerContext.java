@@ -929,6 +929,7 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
         handlerState = REMOVE_COMPLETE;
     }
 
+    // 循环 + CAS 保证多线程下的安全变更 handlerState 属性。
     final boolean setAddComplete() {
         for (;;) {
             int oldState = handlerState;

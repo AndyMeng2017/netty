@@ -92,6 +92,7 @@ final class ChannelHandlerMask {
             if (ChannelInboundHandler.class.isAssignableFrom(handlerType)) {
                 mask |= MASK_ALL_INBOUND;
 
+                // 将 MASK_CHANNEL_REGISTERED 对应的二进制位置为 0
                 if (isSkippable(handlerType, "channelRegistered", ChannelHandlerContext.class)) {
                     mask &= ~MASK_CHANNEL_REGISTERED;
                 }
