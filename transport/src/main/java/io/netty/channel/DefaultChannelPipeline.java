@@ -462,10 +462,11 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         }
 
         // 判断是否存在相同名字的节点
+        // 由于生成的名字默认是 #0，进入这个方法代表已经有一个了
         // It's not very likely for a user to put more than one handler of the same type, but make sure to avoid
         // any name conflicts.  Note that we don't cache the names generated here.
         if (context0(name) != null) {
-            // 若存在，则使用基础名字 + 编号，循环生成，直到一个是唯一的
+            // 若存在，则使用基础名字 + 编号，循环生成，直到一个是唯一的，
             String baseName = name.substring(0, name.length() - 1); // Strip the trailing '0'.
             for (int i = 1;; i ++) {
                 String newName = baseName + i;
@@ -1531,10 +1532,12 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         @Override
         void execute() {
             EventExecutor executor = ctx.executor();
+            // 在 EventLoop 的线程中，回调 ChannelHandler added 事件
             if (executor.inEventLoop()) {
                 callHandlerAdded0(ctx);
             } else {
                 try {
+                    // 提交 EventLoop 中，执行回调 ChannelHandler added 事件
                     executor.execute(this);
                 } catch (RejectedExecutionException e) {
                     if (logger.isWarnEnabled()) {

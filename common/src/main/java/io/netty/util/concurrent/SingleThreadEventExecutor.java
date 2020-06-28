@@ -558,7 +558,7 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
      */
     protected boolean runAllTasks(long timeoutNanos) {
         // 从定时任务获得到时间的任务
-        // 调用 #fetchFromScheduledTaskQueue() 方法，将定时任务队列 scheduledTaskQueue 到达可执行的任务，添加到任务队列 taskQueue 中。通过这样的方式，定时任务得以被执行
+
         fetchFromScheduledTaskQueue();
         // 获得队头的任务
         Runnable task = pollTask();
