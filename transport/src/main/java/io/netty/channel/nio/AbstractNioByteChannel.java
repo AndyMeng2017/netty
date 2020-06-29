@@ -113,6 +113,7 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
         private void handleReadException(ChannelPipeline pipeline, ByteBuf byteBuf, Throwable cause, boolean close,
                 RecvByteBufAllocator.Handle allocHandle) {
             if (byteBuf != null) {
+                // 判断 ByteBuf 对象是否可读，即剩余可读的字节数据。 this.writerIndex - this.readerIndex > 0
                 if (byteBuf.isReadable()) {
                     readPending = false;
                     pipeline.fireChannelRead(byteBuf);

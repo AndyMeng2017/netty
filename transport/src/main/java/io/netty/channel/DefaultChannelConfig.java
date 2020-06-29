@@ -62,6 +62,12 @@ public class DefaultChannelConfig implements ChannelConfig {
 
     private volatile int connectTimeoutMillis = DEFAULT_CONNECT_TIMEOUT;
     private volatile int writeSpinCount = 16;
+    /**
+     * 是否开启自动读取的开关
+     *
+     * 1 - 开启
+     * 0 - 关闭
+     */
     @SuppressWarnings("FieldMayBeFinal")
     private volatile int autoRead = 1;
     private volatile boolean autoClose = true;
@@ -311,8 +317,12 @@ public class DefaultChannelConfig implements ChannelConfig {
 
     @Override
     public ChannelConfig setAutoRead(boolean autoRead) {
+        // 原子更新，并且获得更新前的值
         boolean oldAutoRead = AUTOREAD_UPDATER.getAndSet(this, autoRead ? 1 : 0) == 1;
         if (autoRead && !oldAutoRead) {
+            // autoRead && !oldAutoRead 返回 true ，意味着恢复重启开启接受新的客户端连接。
+            // 所以调用 NioServerSocketChannel#read() 方法，后续的逻辑，
+            // 就是 《精尽 Netty 源码分析 —— 启动（一）之服务端》 的 「3.13.3 beginRead」 的逻辑
             channel.read();
         } else if (!autoRead && oldAutoRead) {
             autoReadCleared();

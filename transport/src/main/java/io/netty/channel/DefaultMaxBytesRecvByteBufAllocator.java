@@ -40,6 +40,7 @@ public class DefaultMaxBytesRecvByteBufAllocator implements MaxBytesRecvByteBufA
         private final UncheckedBooleanSupplier defaultMaybeMoreSupplier = new UncheckedBooleanSupplier() {
             @Override
             public boolean get() {
+                // 最后读取的字节数，是否等于，最大可写入的字节数
                 return attemptBytesRead == lastBytesRead;
             }
         };

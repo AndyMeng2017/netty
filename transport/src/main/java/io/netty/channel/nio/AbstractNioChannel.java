@@ -187,6 +187,7 @@ public abstract class AbstractNioChannel extends AbstractChannel {
 
     private void clearReadPending0() {
         readPending = false;
+        // 移除对“读”事件的感兴趣
         ((AbstractNioUnsafe) unsafe()).removeReadOp();
     }
 
@@ -216,6 +217,7 @@ public abstract class AbstractNioChannel extends AbstractChannel {
 
         protected final void removeReadOp() {
             SelectionKey key = selectionKey();
+            // 忽略，如果 SelectionKey 不合法，例如已经取消
             // Check first if the key is still valid as it may be canceled as part of the deregistration
             // from the EventLoop
             // See https://github.com/netty/netty/issues/2104
@@ -225,6 +227,7 @@ public abstract class AbstractNioChannel extends AbstractChannel {
             int interestOps = key.interestOps();
             if ((interestOps & readInterestOp) != 0) {
                 // only remove readInterestOp if needed
+                // 取反求并，后调用 SelectionKey#interestOps(interestOps) 方法，仅移除对“读”事件的感兴趣
                 key.interestOps(interestOps & ~readInterestOp);
             }
         }
