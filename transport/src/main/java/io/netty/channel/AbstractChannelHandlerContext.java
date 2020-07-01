@@ -1057,6 +1057,7 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
         return StringUtil.simpleClassName(ChannelHandlerContext.class) + '(' + name + ", " + channel() + ')';
     }
 
+    // todo 轻量级对象池 没看明白
     static final class WriteTask implements Runnable {
         private static final ObjectPool<WriteTask> RECYCLER = ObjectPool.newPool(new ObjectCreator<WriteTask>() {
             @Override

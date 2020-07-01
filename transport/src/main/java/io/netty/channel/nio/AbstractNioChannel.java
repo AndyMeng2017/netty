@@ -393,6 +393,13 @@ public abstract class AbstractNioChannel extends AbstractChannel {
 
         private boolean isFlushPending() {
             SelectionKey selectionKey = selectionKey();
+            // 对 SelectionKey.OP_WRITE 事件不感兴趣
+            // 如果处于对 SelectionKey.OP_WRITE 事件感兴趣，说明 Channel 此时是不可写的，
+            // 那么调用父类 AbstractUnsafe 的 #flush0() 方法，也没有意义，所以就不调用
+
+            // 是不是有点懵 x ？在文初，我们提到：“所以在 Netty 的实现中，默认 Channel 是可写的，当写入失败的时候，
+            // 再去注册 SelectionKey.OP_WRITE 事件。这意味着什么呢？在 #flush() 方法中，如果写入数据到 Channel 失败，
+            // 会通过注册 SelectionKey.OP_WRITE 事件，然后在轮询到 Channel 可写 时，再“回调” #forceFlush() 方法”。
             return selectionKey.isValid() && (selectionKey.interestOps() & SelectionKey.OP_WRITE) != 0;
         }
     }

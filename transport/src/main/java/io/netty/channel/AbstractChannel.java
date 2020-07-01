@@ -432,6 +432,9 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
 
         private volatile ChannelOutboundBuffer outboundBuffer = new ChannelOutboundBuffer(AbstractChannel.this);
         private RecvByteBufAllocator.Handle recvHandle;
+        /**
+         * 是否正在 flush 中，即正在调用 {@link #flush0()} 中
+         */
         private boolean inFlush0;
         /** true if the channel has never been registered, false otherwise */
         private boolean neverRegistered = true;
@@ -933,12 +936,15 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
         public final void flush() {
             assertEventLoop();
 
+            // 内存队列为 null ，一般是 Channel 已经关闭，所以直接返回
             ChannelOutboundBuffer outboundBuffer = this.outboundBuffer;
             if (outboundBuffer == null) {
                 return;
             }
 
+            // 标记内存队列开始 flush
             outboundBuffer.addFlush();
+            // 执行 flush
             flush0();
         }
 
@@ -956,10 +962,13 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
 
             inFlush0 = true;
 
+            // 若未激活，通知 flush 失败
             // Mark all pending write requests as failure if the channel is inactive.
             if (!isActive()) {
                 try {
                     if (isOpen()) {
+                        // 失败的时候，会将 outboundBuffer 里的 3个指针（flushedEntry，unflushedEntry，tailEntry）
+                        // 都指向 null，同时释放 每一个 entry 的 msg
                         outboundBuffer.failFlushed(new NotYetConnectedException(), true);
                     } else {
                         // Do not trigger channelWritabilityChanged because the channel is closed already.
@@ -972,6 +981,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
             }
 
             try {
+                // 执行真正的写入到对端
                 doWrite(outboundBuffer);
             } catch (Throwable t) {
                 if (t instanceof IOException && config().isAutoClose()) {

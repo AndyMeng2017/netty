@@ -379,6 +379,7 @@ public class NioSocketChannel extends AbstractNioByteChannel implements io.netty
             if (attempted << 1 > oldMaxBytesPerGatheringWrite) {
                 ((NioSocketChannelConfig) config).setMaxBytesPerGatheringWrite(attempted << 1);
             }
+            // attempted >>> 1 无符号右移一位，补0
         } else if (attempted > MAX_BYTES_PER_GATHERING_WRITE_ATTEMPTED_LOW_THRESHOLD && written < attempted >>> 1) {
             ((NioSocketChannelConfig) config).setMaxBytesPerGatheringWrite(attempted >>> 1);
         }
@@ -387,18 +388,23 @@ public class NioSocketChannel extends AbstractNioByteChannel implements io.netty
     @Override
     protected void doWrite(ChannelOutboundBuffer in) throws Exception {
         SocketChannel ch = javaChannel();
+        // 获得自旋写入次数 默认值为 DefaultChannelConfig.writeSpinCount = 16 ，可配置修改，一般不需要
         int writeSpinCount = config().getWriteSpinCount();
         do {
             if (in.isEmpty()) {
                 // All written so clear OP_WRITE
+                // 取消对 SelectionKey.OP_WRITE 的感兴趣
                 clearOpWrite();
                 // Directly return here so incompleteWrite(...) is not called.
                 return;
             }
 
+            // 获得每次写入的最大字节数
             // Ensure the pending writes are made of ByteBufs only.
             int maxBytesPerGatheringWrite = ((NioSocketChannelConfig) config).getMaxBytesPerGatheringWrite();
+            // 从内存队列中，获得要写入的 ByteBuffer 数组
             ByteBuffer[] nioBuffers = in.nioBuffers(1024, maxBytesPerGatheringWrite);
+            // 写入的 ByteBuffer 数组的个数
             int nioBufferCnt = in.nioBufferCount();
 
             // Always us nioBuffers() to workaround data-corruption.
@@ -414,13 +420,19 @@ public class NioSocketChannel extends AbstractNioByteChannel implements io.netty
                     // to check if the total size of all the buffers is non-zero.
                     ByteBuffer buffer = nioBuffers[0];
                     int attemptedBytes = buffer.remaining();
+                    // 执行 NIO write 调用，写入单个 ByteBuffer 对象到对端
                     final int localWrittenBytes = ch.write(buffer);
+                    // 写入字节小于等于 0 ，说明 NIO Channel 不可写，所以注册 SelectionKey.OP_WRITE ，
+                    // 等待 NIO Channel 可写，并返回以结束循环
                     if (localWrittenBytes <= 0) {
                         incompleteWrite(true);
                         return;
                     }
+                    // TODO 芋艿 调整每次写入的最大字节数
                     adjustMaxBytesPerGatheringWrite(attemptedBytes, localWrittenBytes, maxBytesPerGatheringWrite);
+                    // 从内存队列中，移除已经写入的数据( 消息 )
                     in.removeBytes(localWrittenBytes);
+                    // 写入次数减一
                     --writeSpinCount;
                     break;
                 }
@@ -429,11 +441,15 @@ public class NioSocketChannel extends AbstractNioByteChannel implements io.netty
                     // to check if the total size of all the buffers is non-zero.
                     // We limit the max amount to int above so cast is safe
                     long attemptedBytes = in.nioBufferSize();
+                    // 执行 NIO write 调用，写入多个 ByteBuffer 到对端
                     final long localWrittenBytes = ch.write(nioBuffers, 0, nioBufferCnt);
+                    // 写入字节小于等于 0 ，说明 NIO Channel 不可写，所以注册 SelectionKey.OP_WRITE ，
+                    // 等待 NIO Channel 可写，并返回以结束循环
                     if (localWrittenBytes <= 0) {
                         incompleteWrite(true);
                         return;
                     }
+                    // TODO 芋艿 调整每次写入的最大字节数
                     // Casting to int is safe because we limit the total amount of data in the nioBuffers to int above.
                     adjustMaxBytesPerGatheringWrite((int) attemptedBytes, (int) localWrittenBytes,
                             maxBytesPerGatheringWrite);
@@ -442,8 +458,10 @@ public class NioSocketChannel extends AbstractNioByteChannel implements io.netty
                     break;
                 }
             }
+            // 循环自旋写入
         } while (writeSpinCount > 0);
 
+        // 内存队列中的数据未完全写入，说明 NIO Channel 不可写，所以注册 SelectionKey.OP_WRITE ，等待 NIO Channel 可写
         incompleteWrite(writeSpinCount < 0);
     }
 
