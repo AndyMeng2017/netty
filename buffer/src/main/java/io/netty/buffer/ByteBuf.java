@@ -250,7 +250,7 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf> {
     /**
      * Returns the number of bytes (octets) this buffer can contain.
      */
-    public abstract int capacity();
+    public abstract int capacity(); // 容量
 
     /**
      * Adjusts the capacity of this buffer.  If the {@code newCapacity} is less than the current
@@ -260,7 +260,7 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf> {
      *
      * @throws IllegalArgumentException if the {@code newCapacity} is greater than {@link #maxCapacity()}
      */
-    public abstract ByteBuf capacity(int newCapacity);
+    public abstract ByteBuf capacity(int newCapacity);  // 最大容量
 
     /**
      * Returns the maximum allowed capacity of this buffer. This value provides an upper

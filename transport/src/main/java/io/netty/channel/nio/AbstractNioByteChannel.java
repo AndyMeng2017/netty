@@ -54,6 +54,9 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
             ((AbstractNioUnsafe) unsafe()).flush0();
         }
     };
+    /**
+     * 通道关闭读取，又错误读取的错误的标识
+     */
     private boolean inputClosedSeenErrorOnRead;
 
     /**
@@ -90,6 +93,9 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
     }
 
     private static boolean isAllowHalfClosure(ChannelConfig config) {
+        // etty 参数，一个连接的远端关闭时本地端是否关闭，默认值为 false 。
+        // 值为 false时，连接自动关闭。
+        // 值为 true 时，触发 ChannelInboundHandler 的#userEventTriggered() 方法，事件 ChannelInputShutdownEvent 。
         return config instanceof SocketChannelConfig &&
                 ((SocketChannelConfig) config).isAllowHalfClosure();
     }
@@ -98,14 +104,19 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
 
         private void closeOnRead(ChannelPipeline pipeline) {
             if (!isInputShutdown0()) {
+                // 开启连接半关闭
                 if (isAllowHalfClosure(config())) {
+                    // 关闭 Channel 数据的读取
                     shutdownInput();
+                    // 触发 ChannelInputShutdownEvent.INSTANCE 事件到 pipeline 中
                     pipeline.fireUserEventTriggered(ChannelInputShutdownEvent.INSTANCE);
                 } else {
                     close(voidPromise());
                 }
             } else {
+                // 标记 inputClosedSeenErrorOnRead 为 true
                 inputClosedSeenErrorOnRead = true;
+                // 触发 ChannelInputShutdownEvent.INSTANCE 事件到 pipeline 中
                 pipeline.fireUserEventTriggered(ChannelInputShutdownReadComplete.INSTANCE);
             }
         }
