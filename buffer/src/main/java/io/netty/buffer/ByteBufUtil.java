@@ -88,7 +88,8 @@ public final class ByteBufUtil {
             alloc = PooledByteBufAllocator.DEFAULT;
             logger.debug("-Dio.netty.allocator.type: pooled (unknown: {})", allocType);
         }
-
+        // 在非 Android 环境下，使用 PooledByteBufAllocator 作为默认 ByteBufAllocator 对象。
+        // 在 Android 环境下，使用 UnpooledByteBufAllocator 作为默认 ByteBufAllocator 对象。因为 Android 客户端的内存相对有限。
         DEFAULT_ALLOCATOR = alloc;
 
         THREAD_LOCAL_BUFFER_SIZE = SystemPropertyUtil.getInt("io.netty.threadLocalDirectBufferSize", 0);

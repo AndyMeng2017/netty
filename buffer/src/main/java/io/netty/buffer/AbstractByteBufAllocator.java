@@ -30,6 +30,9 @@ public abstract class AbstractByteBufAllocator implements ByteBufAllocator {
     static final int DEFAULT_INITIAL_CAPACITY = 256;
     static final int DEFAULT_MAX_CAPACITY = Integer.MAX_VALUE;
     static final int DEFAULT_MAX_COMPONENTS = 16;
+    /**
+     * 扩容分界线，4M
+     */
     static final int CALCULATE_THRESHOLD = 1048576 * 4; // 4 MiB page
 
     static {
@@ -80,7 +83,13 @@ public abstract class AbstractByteBufAllocator implements ByteBufAllocator {
         return buf;
     }
 
+    /**
+     * 是否倾向创建 Direct ByteBuf
+     */
     private final boolean directByDefault;
+    /**
+     * 空 ByteBuf 缓存
+     */
     private final ByteBuf emptyBuf;
 
     /**
@@ -97,6 +106,7 @@ public abstract class AbstractByteBufAllocator implements ByteBufAllocator {
      *                     a heap buffer
      */
     protected AbstractByteBufAllocator(boolean preferDirect) {
+        // 有一个前提是需要支持 Unsafe 操作
         directByDefault = preferDirect && PlatformDependent.hasUnsafe();
         emptyBuf = new EmptyByteBuf(this);
     }
@@ -255,8 +265,10 @@ public abstract class AbstractByteBufAllocator implements ByteBufAllocator {
                     "minNewCapacity: %d (expected: not greater than maxCapacity(%d)",
                     minNewCapacity, maxCapacity));
         }
-        final int threshold = CALCULATE_THRESHOLD; // 4 MiB page
+        // 4 MiB page
+        final int threshold = CALCULATE_THRESHOLD;
 
+        // 等于 threshold ，直接返回 threshold
         if (minNewCapacity == threshold) {
             return threshold;
         }
@@ -272,6 +284,7 @@ public abstract class AbstractByteBufAllocator implements ByteBufAllocator {
             return newCapacity;
         }
 
+        // 未超过 threshold ，从 64 开始两倍计算，不超过 4M 大小
         // Not over threshold. Double up to 4 MiB, starting from 64.
         int newCapacity = 64;
         while (newCapacity < minNewCapacity) {

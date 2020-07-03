@@ -28,16 +28,49 @@ import java.nio.channels.ScatteringByteChannel;
 
 abstract class PooledByteBuf<T> extends AbstractReferenceCountedByteBuf {
 
+    /**
+     * Recycler 处理器，用于回收对象
+     */
     private final Handle<PooledByteBuf<T>> recyclerHandle;
 
+    /**
+     * Chunk 对象
+     */
     protected PoolChunk<T> chunk;
+    /**
+     * 从 Chunk 对象中分配的内存块所处的位置
+     */
     protected long handle;
+    /**
+     * 内存空间。具体什么样的数据，通过子类设置泛型。
+     */
     protected T memory;
+    /**
+     * {@link #memory} 开始位置
+     *
+     * @see #idx(int)
+     */
     protected int offset;
+    /**
+     * 容量
+     *
+     * @see #capacity()
+     */
     protected int length;
+    /**
+     * 占用 {@link #memory} 的大小
+     */
     int maxLength;
     PoolThreadCache cache;
+    /**
+     * 临时 ByteBuff 对象
+     *
+     * @see #internalNioBuffer()
+     */
     ByteBuffer tmpNioBuf;
+    /**
+     * ByteBuf 分配器对象
+     */
     private ByteBufAllocator allocator;
 
     @SuppressWarnings("unchecked")
@@ -75,9 +108,13 @@ abstract class PooledByteBuf<T> extends AbstractReferenceCountedByteBuf {
      * Method must be called before reuse this {@link PooledByteBufAllocator}
      */
     final void reuse(int maxCapacity) {
+        // 设置最大容量
         maxCapacity(maxCapacity);
+        // 设置引用数量为 0
         resetRefCnt();
+        // 重置读写索引为 0
         setIndex0(0, 0);
+        // 重置读写标记位为 0
         discardMarks();
     }
 
@@ -93,20 +130,29 @@ abstract class PooledByteBuf<T> extends AbstractReferenceCountedByteBuf {
 
     @Override
     public final ByteBuf capacity(int newCapacity) {
+        // 对于基于 unPoolooled 的 PoolChunk 对象，除非容量不变，否则会扩容或缩容，即【第 47 行】的代码。
+        // 为什么呢？在 #initUnpooled(PoolChunk<T> chunk, int length) 方法中，我们可以看到，maxLength 和 length 是相等的，
+        // 所以大于或小于时，需要进行扩容或缩容
+        //
+        // 对于基于 pooled 的 PoolChunk 对象，容量未变，不进行扩容
         if (newCapacity == length) {
             ensureAccessible();
             return this;
         }
+        // 校验新的容量，不能超过最大容量
         checkNewCapacity(newCapacity);
         if (!chunk.unpooled) {
+            // Chunk 内存，是池化
             // If the request capacity does not require reallocation, just update the length of the memory.
             if (newCapacity > length) {
+                // 扩容
                 if (newCapacity <= maxLength) {
                     length = newCapacity;
                     return this;
                 }
             } else if (newCapacity > maxLength >>> 1 &&
                     (maxLength > 512 || newCapacity > maxLength - 16)) {
+                // 缩容
                 // here newCapacity < length
                 length = newCapacity;
                 trimIndicesToCapacity(newCapacity);
@@ -114,6 +160,7 @@ abstract class PooledByteBuf<T> extends AbstractReferenceCountedByteBuf {
             }
         }
 
+        // 重新分配新的内存空间，并将数据复制到其中。并且，释放老的内存空间。
         // Reallocation required.
         chunk.arena.reallocate(this, newCapacity, true);
         return this;
@@ -126,6 +173,8 @@ abstract class PooledByteBuf<T> extends AbstractReferenceCountedByteBuf {
 
     @Override
     public final ByteOrder order() {
+        // 在网络上传输数据时，由于数据传输的两端对应不同的硬件平台，采用的存储字节顺序可能不一致。
+        // 所以在 TCP/IP 协议规定了在网络上必须采用网络字节顺序，也就是大端模式
         return ByteOrder.BIG_ENDIAN;
     }
 
@@ -151,6 +200,7 @@ abstract class PooledByteBuf<T> extends AbstractReferenceCountedByteBuf {
     }
 
     protected final ByteBuffer internalNioBuffer() {
+        // 获得临时 ByteBuf 对象( tmpNioBuf )
         ByteBuffer tmpNioBuf = this.tmpNioBuf;
         if (tmpNioBuf == null) {
             this.tmpNioBuf = tmpNioBuf = newInternalNioBuffer(memory);
@@ -160,6 +210,9 @@ abstract class PooledByteBuf<T> extends AbstractReferenceCountedByteBuf {
 
     protected abstract ByteBuffer newInternalNioBuffer(T memory);
 
+    /**
+     * 当引用计数为 0 时，调用该方法，进行内存回收
+     */
     @Override
     protected final void deallocate() {
         if (handle >= 0) {
@@ -182,7 +235,11 @@ abstract class PooledByteBuf<T> extends AbstractReferenceCountedByteBuf {
     }
 
     final ByteBuffer _internalNioBuffer(int index, int length, boolean duplicate) {
+        // memory 中的开始位置
         index = idx(index);
+        // duplicate 复制一个 ByteBuffer 对象，共享数据
+        // position + limit 设置位置和大小限制
+        // slice 创建 [position, limit] 子缓冲区，共享数据
         ByteBuffer buffer = duplicate ? newInternalNioBuffer(memory) : internalNioBuffer();
         buffer.limit(index + length).position(index);
         return buffer;

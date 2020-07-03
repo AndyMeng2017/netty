@@ -30,6 +30,13 @@ import java.nio.charset.Charset;
 import java.nio.charset.UnsupportedCharsetException;
 
 /**
+ * #getXXX(index) 方法，读取指定位置的数据，不改变 readerIndex 索引。
+ * #readXXX() 方法，读取 readerIndex 位置的数据，会改成 readerIndex 索引。
+ * #setXXX(index, value) 方法，写入数据到指定位置，不改变 writeIndex 索引。
+ * #writeXXX(value) 方法，写入数据到指定位置，会改变 writeIndex 索引。
+ */
+
+/**
  * A random and sequential accessible sequence of zero or more bytes (octets).
  * This interface provides an abstract view for one or more primitive byte
  * arrays ({@code byte[]}) and {@linkplain ByteBuffer NIO buffers}.
@@ -271,7 +278,7 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf> {
     /**
      * Returns the {@link ByteBufAllocator} which created this buffer.
      */
-    public abstract ByteBufAllocator alloc();
+    public abstract ByteBufAllocator alloc();   // 分配器，用于创建 ByteBuf 对象
 
     /**
      * Returns the <a href="http://en.wikipedia.org/wiki/Endianness">endianness</a>
@@ -302,18 +309,18 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf> {
      *
      * @return {@code null} if this buffer is not a wrapper
      */
-    public abstract ByteBuf unwrap();
+    public abstract ByteBuf unwrap();   // 获得被包装( wrap )的 ByteBuf 对象
 
     /**
      * Returns {@code true} if and only if this buffer is backed by an
      * NIO direct buffer.
      */
-    public abstract boolean isDirect();
+    public abstract boolean isDirect(); // 是否 NIO Direct Buffer
 
     /**
      * Returns {@code true} if and only if this buffer is read-only.
      */
-    public abstract boolean isReadOnly();
+    public abstract boolean isReadOnly();   // 是否为只读 Buffer
 
     /**
      * Returns a read-only version of this buffer.
@@ -323,7 +330,7 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf> {
     /**
      * Returns the {@code readerIndex} of this buffer.
      */
-    public abstract int readerIndex();
+    public abstract int readerIndex();  // 读取位置
 
     /**
      * Sets the {@code readerIndex} of this buffer.
@@ -338,7 +345,7 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf> {
     /**
      * Returns the {@code writerIndex} of this buffer.
      */
-    public abstract int writerIndex();
+    public abstract int writerIndex();  // 写入位置
 
     /**
      * Sets the {@code writerIndex} of this buffer.
@@ -401,19 +408,19 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf> {
      *         {@code readerIndex} or if the specified {@code writerIndex} is
      *         greater than {@code this.capacity}
      */
-    public abstract ByteBuf setIndex(int readerIndex, int writerIndex);
+    public abstract ByteBuf setIndex(int readerIndex, int writerIndex); // 设置读取和写入位置
 
     /**
      * Returns the number of readable bytes which is equal to
      * {@code (this.writerIndex - this.readerIndex)}.
      */
-    public abstract int readableBytes();
+    public abstract int readableBytes();    // 剩余可读字节数
 
     /**
      * Returns the number of writable bytes which is equal to
      * {@code (this.capacity - this.writerIndex)}.
      */
-    public abstract int writableBytes();
+    public abstract int writableBytes();    // 剩余可写字节数
 
     /**
      * Returns the maximum possible number of writable bytes, which is equal to
@@ -464,7 +471,7 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf> {
      * from that of NIO buffer, which sets the {@code limit} to
      * the {@code capacity} of the buffer.
      */
-    public abstract ByteBuf clear();
+    public abstract ByteBuf clear();    // 清空字节空间。实际是修改 readerIndex=writerIndex=0，标记清空
 
     /**
      * Marks the current {@code readerIndex} in this buffer.  You can
@@ -472,7 +479,7 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf> {
      * {@code readerIndex} by calling {@link #resetReaderIndex()}.
      * The initial value of the marked {@code readerIndex} is {@code 0}.
      */
-    public abstract ByteBuf markReaderIndex();
+    public abstract ByteBuf markReaderIndex();  // 标记读取位置
 
     /**
      * Repositions the current {@code readerIndex} to the marked
@@ -490,7 +497,7 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf> {
      * {@code writerIndex} by calling {@link #resetWriterIndex()}.
      * The initial value of the marked {@code writerIndex} is {@code 0}.
      */
-    public abstract ByteBuf markWriterIndex();
+    public abstract ByteBuf markWriterIndex();  // 标记写入位置
 
     /**
      * Repositions the current {@code writerIndex} to the marked
@@ -503,6 +510,11 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf> {
     public abstract ByteBuf resetWriterIndex();
 
     /**
+     * 优点：达到重用废弃段的空间内存。
+     * 缺点：释放的方式，是通过复制可读段到 ByteBuf 的头部。所以，频繁释放会导致性能下降。
+     * 总结：这是典型的问题：选择空间还是时间。具体的选择，需要看对应的场景。😈 后续的文章，我们会看到对该方法的调用。
+     */
+    /**
      * Discards the bytes between the 0th index and {@code readerIndex}.
      * It moves the bytes between {@code readerIndex} and {@code writerIndex}
      * to the 0th index, and sets {@code readerIndex} and {@code writerIndex}
@@ -510,7 +522,7 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf> {
      * <p>
      * Please refer to the class documentation for more detailed explanation.
      */
-    public abstract ByteBuf discardReadBytes();
+    public abstract ByteBuf discardReadBytes(); // 释放已读的字节空间
 
     /**
      * Similar to {@link ByteBuf#discardReadBytes()} except that this method might discard
@@ -518,7 +530,7 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf> {
      * overall memory bandwidth consumption at the cost of potentially additional memory
      * consumption.
      */
-    public abstract ByteBuf discardSomeReadBytes();
+    public abstract ByteBuf discardSomeReadBytes(); // 释放部分已读的字节空间
 
     /**
      * Expands the buffer {@link #capacity()} to make sure the number of
@@ -1760,7 +1772,7 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf> {
      * @throws IndexOutOfBoundsException
      *         if {@code length} is greater than {@code this.readableBytes}
      */
-    public abstract ByteBuf skipBytes(int length);
+    public abstract ByteBuf skipBytes(int length);  // 忽略指定长度的字节数
 
     /**
      * Sets the specified boolean at the current {@code writerIndex}
@@ -2043,7 +2055,7 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf> {
      *
      * @param length the number of <tt>NUL</tt>s to write to the buffer
      */
-    public abstract ByteBuf writeZero(int length);
+    public abstract ByteBuf writeZero(int length);  // 填充指定长度的 0
 
     /**
      * Writes the specified {@link CharSequence} at the current {@code writerIndex} and increases
@@ -2164,7 +2176,7 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf> {
      * This method does not modify {@code readerIndex} or {@code writerIndex} of
      * this buffer.
      */
-    public abstract ByteBuf copy();
+    public abstract ByteBuf copy(); // 拷贝可读部分的字节数组。独立，互相不影响
 
     /**
      * Returns a copy of this buffer's sub-region.  Modifying the content of
@@ -2185,7 +2197,7 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf> {
      * Also be aware that this method will NOT call {@link #retain()} and so the
      * reference count will NOT be increased.
      */
-    public abstract ByteBuf slice();
+    public abstract ByteBuf slice();    // 拷贝可读部分的字节数组。共享，相互影响
 
     /**
      * Returns a retained slice of this buffer's readable bytes. Modifying the content
@@ -2239,7 +2251,7 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf> {
      * However this buffer will share the capacity of the underlying buffer, and therefore allows access to all of the
      * underlying content if necessary.
      */
-    public abstract ByteBuf duplicate();
+    public abstract ByteBuf duplicate();    // 拷贝整个的字节数组。共享，相互影响
 
     /**
      * Returns a retained buffer which shares the whole region of this buffer.
@@ -2268,6 +2280,9 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf> {
      * @see #nioBuffers()
      * @see #nioBuffers(int, int)
      */
+    // ByteBuf 包含 ByteBuffer 数量。
+    // 如果返回 = 1 ，则调用 `#nioBuffer()` 方法，获得 ByteBuf 包含的 ByteBuffer 对象。
+    // 如果返回 > 1 ，则调用 `#nioBuffers()` 方法，获得 ByteBuf 包含的 ByteBuffer 数组。
     public abstract int nioBufferCount();
 
     /**
@@ -2350,7 +2365,8 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf> {
      * If this method returns true, you can safely call {@link #array()} and
      * {@link #arrayOffset()}.
      */
-    public abstract boolean hasArray();
+    // 适用于 Heap 类型的 ByteBuf 对象的 byte[] 字节数组
+    public abstract boolean hasArray(); // 是否有 byte[] 字节数组
 
     /**
      * Returns the backing byte array of this buffer.
@@ -2373,7 +2389,8 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf> {
      * Returns {@code true} if and only if this buffer has a reference to the low-level memory address that points
      * to the backing data.
      */
-    public abstract boolean hasMemoryAddress();
+    // 适用于 Unsafe 类型的 ByteBuf 对象
+    public abstract boolean hasMemoryAddress(); // 是否有内存地址
 
     /**
      * Returns the low-level memory address that point to the first byte of ths backing data.

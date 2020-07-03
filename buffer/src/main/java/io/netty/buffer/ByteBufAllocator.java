@@ -26,6 +26,8 @@ public interface ByteBufAllocator {
     /**
      * Allocate a {@link ByteBuf}. If it is a direct or heap buffer
      * depends on the actual implementation.
+     *
+     * 创建一个 ByteBuf 对象。具体创建的是 Heap ByteBuf 还是 Direct ByteBuf ，由实现类决定
      */
     ByteBuf buffer();
 
@@ -44,6 +46,8 @@ public interface ByteBufAllocator {
 
     /**
      * Allocate a {@link ByteBuf}, preferably a direct buffer which is suitable for I/O.
+     *
+     * 创建一个用于 IO 操作的 ByteBuf 对象。倾向于 Direct ByteBuf ，因为对于 IO 操作来说，性能更优
      */
     ByteBuf ioBuffer();
 
@@ -123,12 +127,16 @@ public interface ByteBufAllocator {
 
     /**
      * Returns {@code true} if direct {@link ByteBuf}'s are pooled
+     *
+     * 是否基于 Direct ByteBuf 对象池
      */
     boolean isDirectBufferPooled();
 
     /**
      * Calculate the new capacity of a {@link ByteBuf} that is used when a {@link ByteBuf} needs to expand by the
      * {@code minNewCapacity} with {@code maxCapacity} as upper-bound.
+     *
+     * 在 ByteBuf 扩容时，计算新的容量，该容量的值在 [minNewCapacity, maxCapacity] 范围内
      */
     int calculateNewCapacity(int minNewCapacity, int maxCapacity);
  }

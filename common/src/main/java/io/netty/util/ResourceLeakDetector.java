@@ -122,7 +122,9 @@ public class ResourceLeakDetector<T> {
         levelStr = SystemPropertyUtil.get(PROP_LEVEL, levelStr);
         Level level = Level.parseLevel(levelStr);
 
+        // 4
         TARGET_RECORDS = SystemPropertyUtil.getInt(PROP_TARGET_RECORDS, DEFAULT_TARGET_RECORDS);
+        // 128
         SAMPLING_INTERVAL = SystemPropertyUtil.getInt(PROP_SAMPLING_INTERVAL, DEFAULT_SAMPLING_INTERVAL);
 
         ResourceLeakDetector.level = level;
@@ -348,8 +350,13 @@ public class ResourceLeakDetector<T> {
                         AtomicIntegerFieldUpdater.newUpdater(DefaultResourceLeak.class, "droppedRecords");
 
         @SuppressWarnings("unused")
+        /**
+         * 这个 Record 是个按序倒排链表，NEW -> OLD2 -> OLD1 -> BOTTOM
+         * 每次新增都会在头部添加元素
+         */
         private volatile Record head;
         @SuppressWarnings("unused")
+        // 删除了几个 Record
         private volatile int droppedRecords;
 
         private final Set<DefaultResourceLeak<?>> allLeaks;
@@ -359,6 +366,19 @@ public class ResourceLeakDetector<T> {
                 Object referent,
                 ReferenceQueue<Object> refQueue,
                 Set<DefaultResourceLeak<?>> allLeaks) {
+            // 也就是说，referent 被标记为垃圾的时候，它对应的 WeakReference 对象会被添加到 refQueue 队列中。在此处，
+            // 即将 DefaultResourceLeak 添加到 referent 队列中。
+            //
+            // 那又咋样呢？假设 referent 为 ByteBuf 对象。如果它被正确的释放，即调用了 「3.3.4 release」 方法，
+            // 从而调用了 AbstractReferenceCountedByteBuf#closeLeak() 方法，
+            // 最终调用到 ResourceLeakTracker#close(trackedByteBuf) 方法，
+            // 那么该 ByteBuf 对象对应的 ResourceLeakTracker 对象，
+            // 将从 ResourceLeakDetector.allLeaks 中移除。
+            //
+            // 那这又意味着什么呢？ 在 ResourceLeakDetector#reportLeak() 方法中，
+            // 即使从 refQueue 队列中，获取到该 ByteBuf 对象对应 ResourceLeakTracker 对象，
+            // 因为在 ResourceLeakDetector.allLeaks 中移除了，
+            // 所以在 ResourceLeakDetector#reportLeak() 方法的【第 19 行】代码 !ref.dispose() = true ，直接 continue
             super(referent, refQueue);
 
             assert referent != null;
@@ -421,8 +441,12 @@ public class ResourceLeakDetector<T> {
                         // already closed.
                         return;
                     }
+                    // 当超过 TARGET_RECORDS 数量时，随机丢到头节点
                     final int numElements = oldHead.pos + 1;
                     if (numElements >= TARGET_RECORDS) {
+                        // 随机丢弃当前 head 节点的数据。也就是说，尽量保留老的 Record 节点。
+                        // 这是为什么呢?越是老( 开始 )的 Record 节点，越有利于排查问题。
+                        // 另外，随机丢弃的的概率，按照 1 - (1 / 2^n） 几率，越来越大
                         final int backOffFactor = Math.min(numElements - TARGET_RECORDS, 30);
                         if (dropped = PlatformDependent.threadLocalRandom().nextInt(1 << backOffFactor) != 0) {
                             prevHead = oldHead.next;
@@ -513,6 +537,7 @@ public class ResourceLeakDetector<T> {
             StringBuilder buf = new StringBuilder(present * 2048).append(NEWLINE);
             buf.append("Recent access records: ").append(NEWLINE);
 
+            // 拼接 Record 练
             int i = 1;
             Set<String> seen = new HashSet<String>(present);
             for (; oldHead != Record.BOTTOM; oldHead = oldHead.next) {
@@ -528,6 +553,7 @@ public class ResourceLeakDetector<T> {
                 }
             }
 
+            // 拼接 duped ( 重复 ) 次数
             if (duped > 0) {
                 buf.append(": ")
                         .append(duped)
@@ -535,6 +561,7 @@ public class ResourceLeakDetector<T> {
                         .append(NEWLINE);
             }
 
+            // 拼接 dropped (丢弃) 次数
             if (dropped > 0) {
                 buf.append(": ")
                    .append(dropped)

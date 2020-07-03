@@ -27,7 +27,16 @@ import java.nio.ByteBuffer;
 public final class UnpooledByteBufAllocator extends AbstractByteBufAllocator implements ByteBufAllocatorMetricProvider {
 
     private final UnpooledByteBufAllocatorMetric metric = new UnpooledByteBufAllocatorMetric();
+    /**
+     * 是否禁用内存泄露检测功能
+     */
     private final boolean disableLeakDetector;
+    /**
+     * 不使用 `io.netty.util.internal.Cleaner` 释放 Direct ByteBuf
+     *
+     * @see UnpooledUnsafeNoCleanerDirectByteBuf
+     * @see InstrumentedUnpooledUnsafeNoCleanerDirectByteBuf
+     */
     private final boolean noCleaner;
 
     /**
@@ -88,6 +97,11 @@ public final class UnpooledByteBufAllocator extends AbstractByteBufAllocator imp
     protected ByteBuf newDirectBuffer(int initialCapacity, int maxCapacity) {
         final ByteBuf buf;
         if (PlatformDependent.hasUnsafe()) {
+            // 和 UnpooledUnsafeDirectByteBuf 最大区别在于 UnpooledUnsafeNoCleanerDirectByteBuf
+            // 在 allocate的时候通过反射构造函数的方式创建DirectByteBuffer，这样在DirectByteBuffer中没有对应的Cleaner函数
+            // (通过ByteBuffer.allocateDirect的方式会自动生成Cleaner函数，Cleaner用于内存回收，具体可以看源码)，内存回收时，
+            // UnpooledUnsafeDirectByteBuf通过调用DirectByteBuffer中的Cleaner函数回收，
+            // 而UnpooledUnsafeNoCleanerDirectByteBuf直接使用UNSAFE.freeMemory(address)释放内存地址
             buf = noCleaner ? new InstrumentedUnpooledUnsafeNoCleanerDirectByteBuf(this, initialCapacity, maxCapacity) :
                     new InstrumentedUnpooledUnsafeDirectByteBuf(this, initialCapacity, maxCapacity);
         } else {
