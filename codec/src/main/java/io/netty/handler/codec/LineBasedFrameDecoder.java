@@ -163,6 +163,8 @@ public class LineBasedFrameDecoder extends ByteToMessageDecoder {
     /**
      * Returns the index in the buffer of the end of line found.
      * Returns -1 if no end of line was found in the buffer.
+     *
+     * for循环遍历，找到第一个 \n 的位置,如果\n前面的字符为\r，那就返回\r的位置
      */
     private int findEndOfLine(final ByteBuf buffer) {
         int totalLength = buffer.readableBytes();

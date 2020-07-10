@@ -36,7 +36,13 @@ public class IdleStateEvent {
     public static final IdleStateEvent ALL_IDLE_STATE_EVENT =
             new DefaultIdleStateEvent(IdleState.ALL_IDLE, false);
 
+    /**
+     * 空闲状态类型
+     */
     private final IdleState state;
+    /**
+     * 是否首次
+     */
     private final boolean first;
 
     /**
