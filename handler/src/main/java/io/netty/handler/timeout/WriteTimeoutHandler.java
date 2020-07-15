@@ -128,7 +128,7 @@ public class WriteTimeoutHandler extends ChannelOutboundHandlerAdapter {
     @Override
     public void handlerRemoved(ChannelHandlerContext ctx) throws Exception {
         // 移除所有 WriteTimeoutTask 任务，并取消
-            WriteTimeoutTask task = lastTask;
+        WriteTimeoutTask task = lastTask;
         // 置空 lastTask
         lastTask = null;
         // 循环移除，直到为空
@@ -171,6 +171,8 @@ public class WriteTimeoutHandler extends ChannelOutboundHandlerAdapter {
 
     private void removeWriteTimeoutTask(WriteTimeoutTask task) {
         if (task == lastTask) {
+            // 从双向链表中，移除自己
+            // 尾节点
             // task is the tail of list
             assert task.next == null;
             lastTask = lastTask.prev;
@@ -178,12 +180,15 @@ public class WriteTimeoutHandler extends ChannelOutboundHandlerAdapter {
                 lastTask.next = null;
             }
         } else if (task.prev == null && task.next == null) {
+            // 已经被移除
             // Since task is not lastTask, then it has been removed or not been added.
             return;
         } else if (task.prev == null) {
+            // 头节点
             // task is the head of list and the list has at least 2 nodes
             task.next.prev = null;
         } else {
+            // 中间的节点
             task.prev.next = task.next;
             task.next.prev = task.prev;
         }
@@ -196,8 +201,11 @@ public class WriteTimeoutHandler extends ChannelOutboundHandlerAdapter {
      */
     protected void writeTimedOut(ChannelHandlerContext ctx) throws Exception {
         if (!closed) {
+            // 触发 Exception Caught 事件到 pipeline 中，异常为 WriteTimeoutException
             ctx.fireExceptionCaught(WriteTimeoutException.INSTANCE);
+            // 关闭 Channel 通道
             ctx.close();
+            // 标记 Channel 为已关闭
             closed = true;
         }
     }

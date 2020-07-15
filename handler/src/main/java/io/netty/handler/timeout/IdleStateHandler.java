@@ -375,6 +375,8 @@ public class IdleStateHandler extends ChannelDuplexHandler {
         // 开启了 write 或 all 的空闲检测
         if (writerIdleTimeNanos > 0 || allIdleTimeNanos > 0) {
             // 写入，并添加写入监听器
+            // 在开启 write 或 all 的空闲检测的情况下，写入的时候，会添加写入监听器 writeListener 。
+            // 该监听器会在消息( 数据 ) flush 到对端后，回调，
             ctx.write(msg, promise.unvoid()).addListener(writeListener);
         } else {
             // 写入，不添加监听器
