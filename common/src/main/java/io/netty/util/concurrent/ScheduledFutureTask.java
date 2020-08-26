@@ -34,9 +34,14 @@ final class ScheduledFutureTask<V> extends PromiseTask<V> implements ScheduledFu
         return System.nanoTime() - START_TIME;
     }
 
+    /**
+     * @param delay 延迟时长，单位：纳秒
+     * @return 获得任务执行时间，也是相对 {@link #START_TIME} 来算的。
+     *          实际上，返回的结果，会用于 {@link #deadlineNanos} 字段
+     */
     static long deadlineNanos(long delay) {
         long deadlineNanos = nanoTime() + delay;
-        // Guard against overflow
+        // Guard against overflow 防御性编程
         return deadlineNanos < 0 ? Long.MAX_VALUE : deadlineNanos;
     }
 
@@ -155,6 +160,13 @@ final class ScheduledFutureTask<V> extends PromiseTask<V> implements ScheduledFu
         return unit.convert(delayNanos(), TimeUnit.NANOSECONDS);
     }
 
+    /**
+     * 按照 deadlineNanos、id 属性升序排序
+     * 用于队列( ScheduledFutureTask 使用 PriorityQueue 作为优先级队列 )排序
+     *
+     * @param o
+     * @return
+     */
     @Override
     public int compareTo(Delayed o) {
         if (this == o) {
@@ -233,6 +245,7 @@ final class ScheduledFutureTask<V> extends PromiseTask<V> implements ScheduledFu
     @Override
     public boolean cancel(boolean mayInterruptIfRunning) {
         boolean canceled = super.cancel(mayInterruptIfRunning);
+        // 取消成功，移除出定时任务队列
         if (canceled) {
             scheduledExecutor().removeScheduled(this);
         }
